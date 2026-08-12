@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIZZ — Driveroad Garage</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+  :root{
+    --asphalt: #0b0d10;
+    --asphalt-2: #14171c;
+    --line-amber: #f2b134;
+    --taillight: #e23d3d;
+    --concrete: #8a8f98;
+    --off-white: #eef0f2;
+    --panel: #191d23;
+    --panel-edge: #262b33;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--asphalt);
+    color:var(--off-white);
+    font-family:'Inter',sans-serif;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ambient road texture */
+  body::before{
+    content:'';
+    position:fixed; inset:0;
+    background:
+      repeating-linear-gradient(180deg, transparent 0 46px, rgba(242,177,52,0.05) 46px 48px),
+      radial-gradient(ellipse at 50% -10%, rgba(242,177,52,0.06), transparent 55%);
+    pointer-events:none;
+    z-index:0;
+  }
+  body::after{
+    content:'';
+    position:fixed; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:1;
+  }
+
+  .wrap{position:relative;z-index:2;max-width:920px;margin:0 auto;padding:0 24px 90px;}
+
+  /* Header / hero */
+  header{
+    padding:56px 0 40px;
+    border-bottom:1px dashed var(--panel-edge);
+    margin-bottom:52px;
+  }
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--line-amber);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:8px;height:8px;border-radius:50%;
+    background:var(--taillight);
+    box-shadow:0 0 10px 2px rgba(226,61,61,.7);
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:clamp(40px, 9vw, 68px);
+    line-height:0.95;
+    letter-spacing:-.01em;
+    text-transform:uppercase;
+    color:var(--off-white);
+  }
+  h1 span{color:var(--line-amber);}
+  .sub{
+    margin-top:16px;
+    max-width:52ch;
+    color:var(--concrete);
+    font-size:15.5px;
+    line-height:1.6;
+  }
+
+  /* dashed road divider */
+  .road{
+    height:2px;
+    margin:44px 0 0;
+    background:repeating-linear-gradient(90deg, var(--line-amber) 0 26px, transparent 26px 46px);
+    opacity:.55;
+  }
+
+  /* project plates */
+  .lot{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:22px;
+  }
+  @media(min-width:720px){
+    .lot{grid-template-columns:1fr 1fr;}
+  }
+
+  .plate{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:10px;
+    padding:26px 24px 24px;
+    text-decoration:none;
+    color:inherit;
+    display:block;
+    transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    overflow:hidden;
+  }
+  .plate:hover{
+    transform:translateY(-3px);
+    border-color:var(--line-amber);
+    box-shadow:0 14px 34px -18px rgba(242,177,52,.35);
+  }
+  .plate:active{transform:translateY(-1px) scale(.995);}
+
+  .plate-tag{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--concrete);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+  }
+  .plate-tag .status{
+    color:var(--line-amber);
+    display:flex; align-items:center; gap:6px;
+  }
+  .plate-tag .status::before{
+    content:'';
+    width:6px;height:6px;border-radius:50%;
+    background:var(--line-amber);
+  }
+
+  .plate-name{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:30px;
+    text-transform:uppercase;
+    letter-spacing:.01em;
+    margin-bottom:10px;
+  }
+  .plate-desc{
+    color:var(--concrete);
+    font-size:14px;
+    line-height:1.55;
+    margin-bottom:22px;
+    max-width:40ch;
+  }
+
+  .plate-foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding-top:16px;
+    border-top:1px dashed var(--panel-edge);
+  }
+  .plate-go{
+    font-family:'Space Mono',monospace;
+    font-size:12.5px;
+    color:var(--off-white);
+    display:flex; align-items:center; gap:8px;
+  }
+  .plate-go svg{transition:transform .18s ease;}
+  .plate:hover .plate-go svg{transform:translateX(4px);}
+
+  .plate-num{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    color:var(--panel-edge);
+    border:1px solid var(--panel-edge);
+    padding:3px 8px;
+    border-radius:4px;
+    color:var(--concrete);
+  }
+
+  /* signature: headlight sweep on hover */
+  .plate .beam{
+    position:absolute; top:-40%; left:-20%;
+    width:160px; height:220%;
+    background:linear-gradient(100deg, transparent, rgba(242,177,52,.08), transparent);
+    transform:rotate(12deg) translateX(-220px);
+    transition:transform .55s ease;
+    pointer-events:none;
+  }
+  .plate:hover .beam{transform:rotate(12deg) translateX(520px);}
+
+  footer{
+    margin-top:64px;
+    padding-top:24px;
+    border-top:1px dashed var(--panel-edge);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+    color:var(--panel-edge);
+    color:var(--concrete);
+    font-family:'Space Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:.04em;
+  }
+  footer a{color:var(--line-amber); text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    .plate, .plate-go svg, .plate .beam{transition:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Driveroad · Build Log</div>
+      <h1>NIZZ<span>.</span><br>Garage</h1>
+      <p class="sub">Two builds parked here — a live-road driving sim and a product login demo. Pick one to start the engine.</p>
+      <div class="road"></div>
+    </header>
+
+    <div class="lot">
+      <a class="plate" href="/nizz-road.html">
+        <div class="beam"></div>
+        <div class="plate-tag">
+          <span>Driving Sim</span>
+          <span class="status">Live</span>
+        </div>
+        <div class="plate-name">Nizz Road</div>
+        <p class="plate-desc">Drive any real road on Earth — live OSM streets, buildings, drift physics and a heading-up minimap.</p>
+        <div class="plate-foot">
+          <span class="plate-go">Get in
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5H13M13 5L9 1M13 5L9 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="plate-num">NZ · 01</span>
+        </div>
+      </a>
+
+      <a class="plate" href="/nizam-login.html">
+        <div class="beam"></div>
+        <div class="plate-tag">
+          <span>Auth Demo</span>
+          <span class="status">Live</span>
+        </div>
+        <div class="plate-name">Nizam</div>
+        <p class="plate-desc">Animated sign-in screen with eye-tracking, peek-on-password and a maroon &amp; gold trading-desk theme.</p>
+        <div class="plate-foot">
+          <span class="plate-go">Get in
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5H13M13 5L9 1M13 5L9 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="plate-num">NZ · 02</span>
+        </div>
+      </a>
+    </div>
+
+    <footer>
+      <span>© 2026 Nizz Dev</span>
+      <span>driveroad-nizz.netlify.app</span>
+    </footer>
+  </div>
+</body>
+</html>
