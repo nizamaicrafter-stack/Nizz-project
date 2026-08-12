@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIZAM — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --maroon-deep:#2c0b10;
+    --maroon:#4a121a;
+    --maroon-soft:#6b1f29;
+    --gold:#cf9f4f;
+    --gold-light:#eccf8e;
+    --cream:#f6ecd9;
+    --cream-dim:#e8dcc2;
+    --ink:#241012;
+    --ink-soft:#6b5850;
+    --error:#c65b4f;
+    --good:#5a8f6b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);}
+  .display{font-family:'Fraunces',serif;}
+
+  #stage{min-height:100vh;display:flex;}
+
+  /* ---------------- LEFT: brand + character panel ---------------- */
+  #brandPanel{
+    flex:1 1 46%;background:radial-gradient(120% 140% at 20% 15%, var(--maroon-soft), var(--maroon-deep) 65%);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;
+    justify-content:space-between;padding:44px 40px;min-height:100vh;
+  }
+  #brandPanel .marktop{display:flex;align-items:center;gap:10px;}
+  #brandPanel .marktop .bar{width:3px;height:22px;background:var(--gold);border-radius:2px;}
+  #brandPanel .marktop .label{font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold-light);}
+
+  #brandPanel .headline{margin-top:auto;margin-bottom:auto;}
+  #brandPanel .headline h1{font-size:clamp(30px,4vw,44px);color:var(--cream);margin:0 0 12px;line-height:1.08;font-weight:600;}
+  #brandPanel .headline h1 em{color:var(--gold);font-style:normal;}
+  #brandPanel .headline p{color:var(--cream-dim);font-size:14px;max-width:340px;line-height:1.6;margin:0;}
+
+  .ticker{display:flex;gap:18px;font-size:11px;letter-spacing:.06em;color:var(--gold-light);opacity:.75;flex-wrap:wrap;}
+
+  /* ---- character stage ---- */
+  #charWrap{position:absolute;right:6%;bottom:0;width:260px;height:340px;pointer-events:none;}
+  #charSvgHolder{width:100%;height:100%;transform:translateY(30px);opacity:0;
+    animation:charIn 0.9s cubic-bezier(.2,.9,.25,1.2) 0.35s forwards;}
+  @keyframes charIn{ to{ transform:translateY(0); opacity:1; } }
+
+  .candle{position:absolute;bottom:0;width:6px;background:var(--gold);opacity:.18;border-radius:2px 2px 0 0;}
+
+  /* ---------------- RIGHT: form panel ---------------- */
+  #formPanel{flex:1 1 54%;display:flex;align-items:center;justify-content:center;padding:32px;}
+  #card{width:100%;max-width:380px;}
+  #card .eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;}
+  #card h2{font-family:'Fraunces',serif;font-weight:600;font-size:30px;margin:0 0 6px;color:var(--ink);}
+  #card .sub{font-size:13.5px;color:var(--ink-soft);margin:0 0 30px;line-height:1.55;}
+
+  .field{margin-bottom:18px;position:relative;}
+  .field label{display:block;font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--ink-soft);margin-bottom:7px;}
+  .field input{
+    width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid #e2d3ba;
+    background:#fffdf8;font-size:14.5px;color:var(--ink);outline:none;
+    transition:border-color .2s ease, box-shadow .2s ease;font-family:'Inter',sans-serif;
+  }
+  .field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(207,159,79,0.16);}
+  .field input.errorState{border-color:var(--error);}
+  .field .toggleEye{position:absolute;right:12px;top:37px;background:none;border:none;cursor:pointer;
+    color:var(--ink-soft);font-size:12px;letter-spacing:.02em;font-family:'Inter',sans-serif;font-weight:600;}
+  .field .errMsg{font-size:11.5px;color:var(--error);margin-top:6px;display:none;}
+  .field.shakeErr{animation:shakeX .38s ease;}
+  @keyframes shakeX{
+    0%,100%{transform:translateX(0);} 20%{transform:translateX(-7px);} 40%{transform:translateX(6px);}
+    60%{transform:translateX(-5px);} 80%{transform:translateX(4px);}
+  }
+
+  .rowBetween{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;font-size:12.5px;}
+  .rowBetween label{display:flex;align-items:center;gap:7px;color:var(--ink-soft);cursor:pointer;}
+  .rowBetween a{color:var(--maroon);text-decoration:none;font-weight:600;}
+
+  #submitBtn{
+    width:100%;padding:14px;border:none;border-radius:10px;
+    background:linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+    color:var(--gold-light);font-family:'Fraunces',serif;font-weight:600;font-size:15.5px;
+    letter-spacing:.02em;cursor:pointer;position:relative;overflow:hidden;
+    transition:transform .15s ease, box-shadow .2s ease;
+  }
+  #submitBtn:active{transform:scale(0.98);}
+  #submitBtn:hover{box-shadow:0 8px 24px -8px rgba(74,18,26,0.55);}
+  #submitBtn .btnLabel{display:inline-flex;align-items:center;gap:9px;}
+  #submitBtn .spinner{width:15px;height:15px;border-radius:50%;border:2px solid rgba(236,207,142,0.35);
+    border-top-color:var(--gold-light);display:none;animation:spin .7s linear infinite;}
+  #submitBtn.loading .spinner{display:inline-block;}
+  #submitBtn.loading .btnText{opacity:.7;}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  #submitBtn.success{background:linear-gradient(135deg, var(--good), #3f6e4d);}
+
+  .divider{display:flex;align-items:center;gap:10px;margin:26px 0;color:var(--ink-soft);font-size:11.5px;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e6d9c0;}
+
+  .footNote{text-align:center;font-size:12.5px;color:var(--ink-soft);}
+  .footNote a{color:var(--maroon);font-weight:700;text-decoration:none;}
+
+  @media (max-width:860px){
+    #stage{flex-direction:column;}
+    #brandPanel{min-height:260px;padding:28px 24px;}
+    #brandPanel .headline{margin:18px 0;}
+    #brandPanel .headline p{display:none;}
+    #charWrap{width:150px;height:190px;right:4%;}
+    .ticker{display:none;}
+    #formPanel{padding:26px 20px 60px;}
+  }
+
+  /* reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+  }
+
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- LEFT — brand + character -->
+  <div id="brandPanel">
+    <div class="marktop"><div class="bar"></div><div class="label">Nizam</div></div>
+
+    <div class="headline">
+      <h1>Your desk,<br><em>watching the tape</em><br>while you sleep.</h1>
+      <p>Screeners, alerts, and live NIFTY/SENSEX signals — sign back in to pick up where you left off.</p>
+    </div>
+
+    <div class="ticker">
+      <span>NIFTY 50 · 24,812 ▲</span>
+      <span>SENSEX · 81,204 ▲</span>
+      <span>BANKNIFTY · 52,930 ▼</span>
+    </div>
+
+    <div id="charWrap">
+      <div id="charSvgHolder">
+        <svg viewBox="0 0 260 340" width="100%" height="100%">
+          <ellipse cx="130" cy="322" rx="70" ry="10" fill="#000" opacity="0.18"/>
+          <!-- legs -->
+          <rect x="108" y="230" width="16" height="70" rx="8" fill="#1c2230"/>
+          <rect x="138" y="230" width="16" height="70" rx="8" fill="#1c2230"/>
+          <rect x="102" y="292" width="28" height="12" rx="6" fill="#eccf8e"/>
+          <rect x="132" y="292" width="28" height="12" rx="6" fill="#eccf8e"/>
+          <!-- body / coat -->
+          <path d="M92 150 Q130 130 170 150 L176 240 Q130 258 86 240 Z" fill="#f6ecd9"/>
+          <path d="M92 150 Q130 130 170 150 L166 168 Q130 180 96 168 Z" fill="#cf9f4f"/>
+          <rect x="122" y="150" width="18" height="70" fill="#4a121a"/>
+          <!-- arms (base, behind hands) -->
+          <g id="armLeft">
+            <rect x="78" y="155" width="16" height="72" rx="8" fill="#f6ecd9"/>
+          </g>
+          <g id="armRight">
+            <rect x="168" y="155" width="16" height="72" rx="8" fill="#f6ecd9"/>
+          </g>
+          <!-- head -->
+          <circle cx="131" cy="108" r="46" fill="#e8b98a"/>
+          <path d="M85 100 Q90 55 131 55 Q172 55 177 100 Q150 82 131 82 Q112 82 85 100Z" fill="#241012"/>
+          <!-- eyes group (moves for tracking) -->
+          <g id="eyes">
+            <g id="eyeL"><circle cx="115" cy="110" r="7" fill="#fff"/><circle id="pupilL" cx="117" cy="110" r="3.4" fill="#241012"/></g>
+            <g id="eyeR"><circle cx="147" cy="110" r="7" fill="#fff"/><circle id="pupilR" cx="149" cy="110" r="3.4" fill="#241012"/></g>
+          </g>
+          <path id="mouth" d="M118 132 Q131 140 144 132" stroke="#8a4a3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- hands (cover eyes on password focus) -->
+          <g id="handLeft" style="transform-origin:78px 155px; transition: transform .45s cubic-bezier(.2,.9,.3,1.1);">
+            <ellipse cx="86" cy="152" rx="14" ry="17" fill="#e8b98a"/>
+          </g>
+          <g id="handRight" style="transform-origin:184px 155px; transition: transform .45s cubic-bezier(.2,.9,.3,1.1);">
+            <ellipse cx="176" cy="152" rx="14" ry="17" fill="#e8b98a"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT — form -->
+  <div id="formPanel">
+    <div id="card">
+      <div class="eyebrow">Trading Desk Access</div>
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to continue tracking your watchlist and screeners.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="username">Username or email</label>
+          <input id="username" type="text" autocomplete="username" placeholder="you@example.com" />
+          <div class="errMsg" id="userErr">Enter your username or email.</div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+          <button type="button" class="toggleEye" id="toggleEye">SHOW</button>
+          <div class="errMsg" id="passErr">Enter your password.</div>
+        </div>
+
+        <div class="rowBetween">
+          <label><input type="checkbox" id="remember"/> Keep me signed in</label>
+          <a href="#" id="forgotLink">Forgot password?</a>
+        </div>
+
+        <button type="submit" id="submitBtn">
+          <span class="btnLabel">
+            <span class="spinner"></span>
+            <span class="btnText">Sign In</span>
+          </span>
+        </button>
+      </form>
+
+      <div class="divider">or</div>
+      <p class="footNote">New to Nizam? <a href="#">Create an account</a></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+const username = document.getElementById('username');
+const password = document.getElementById('password');
+const pupilL = document.getElementById('pupilL');
+const pupilR = document.getElementById('pupilR');
+const handLeft = document.getElementById('handLeft');
+const handRight = document.getElementById('handRight');
+const mouth = document.getElementById('mouth');
+const toggleEye = document.getElementById('toggleEye');
+const submitBtn = document.getElementById('submitBtn');
+const form = document.getElementById('loginForm');
+
+// Eyes track how much has been typed in the username field —
+// pupils drift right and slightly up as the string grows, like reading along.
+username.addEventListener('input', ()=>{
+  const t = Math.min(1, username.value.length / 24);
+  const dx = -2 + t*5;      // -2..3
+  const dy = -1 + t*2;      // subtle vertical
+  pupilL.setAttribute('cx', 117+dx); pupilL.setAttribute('cy', 110+dy);
+  pupilR.setAttribute('cx', 149+dx); pupilR.setAttribute('cy', 110+dy);
+  mouth.setAttribute('d', t>0.15 ? 'M118 130 Q131 138 144 130' : 'M118 132 Q131 140 144 132');
+});
+username.addEventListener('blur', resetGaze);
+function resetGaze(){
+  pupilL.setAttribute('cx', 117); pupilL.setAttribute('cy', 110);
+  pupilR.setAttribute('cx', 149); pupilR.setAttribute('cy', 110);
+}
+
+// Hands rise to cover the eyes while the password field is focused —
+// classic "don't peek" moment. A "SHOW" toggle lets a hand drop to peek.
+let passwordVisible = false;
+password.addEventListener('focus', coverEyes);
+password.addEventListener('blur', ()=>{ if(!passwordVisible) uncoverEyes(); });
+function coverEyes(){
+  handLeft.style.transform = 'translate(28px,-46px) rotate(-8deg)';
+  handRight.style.transform = 'translate(-28px,-46px) rotate(8deg)';
+}
+function uncoverEyes(){
+  handLeft.style.transform = 'translate(0,0) rotate(0)';
+  handRight.style.transform = 'translate(0,0) rotate(0)';
+}
+toggleEye.addEventListener('click', ()=>{
+  passwordVisible = !passwordVisible;
+  password.type = passwordVisible ? 'text' : 'password';
+  toggleEye.textContent = passwordVisible ? 'HIDE' : 'SHOW';
+  if(document.activeElement === password){
+    if(passwordVisible){ handLeft.style.transform='translate(28px,-46px) rotate(-8deg)'; handRight.style.transform='translate(0,0) rotate(0)'; }
+    else coverEyes();
+  }
+});
+
+function setFieldError(input, errEl, show, msg){
+  input.classList.toggle('errorState', show);
+  if(msg) errEl.textContent = msg;
+  errEl.style.display = show ? 'block' : 'none';
+  if(show){
+    const field = input.closest('.field');
+    field.classList.remove('shakeErr'); void field.offsetWidth; field.classList.add('shakeErr');
+  }
+}
+
+// Demo-only credential check — this runs entirely in the browser, so it's fine
+// for a personal demo/prototype but is NOT secure for a real product (anyone
+// can view-source and read this). A real login needs server-side auth
+// (e.g. Supabase Auth, Firebase Auth, or your own backend).
+const VALID_EMAIL = 'Nizamaicrafter@gmail.com';
+const VALID_PASSWORD = 'Nizz@973892';
+
+form.addEventListener('submit', e=>{
+  e.preventDefault();
+  const uOk = username.value.trim().length > 0;
+  const pOk = password.value.trim().length > 0;
+  setFieldError(username, document.getElementById('userErr'), !uOk, 'Enter your username or email.');
+  setFieldError(password, document.getElementById('passErr'), !pOk, 'Enter your password.');
+  if(!uOk || !pOk) return;
+
+  const credentialsMatch = username.value.trim().toLowerCase() === VALID_EMAIL.toLowerCase()
+                            && password.value === VALID_PASSWORD;
+
+  if(!credentialsMatch){
+    setFieldError(username, document.getElementById('userErr'), true, 'Incorrect email or password.');
+    setFieldError(password, document.getElementById('passErr'), true, 'Incorrect email or password.');
+    mouth.setAttribute('d', 'M118 136 Q131 128 144 136'); // frown
+    return;
+  }
+
+  submitBtn.classList.add('loading');
+  submitBtn.querySelector('.btnText').textContent = 'Signing in…';
+  setTimeout(()=>{
+    submitBtn.classList.remove('loading');
+    submitBtn.classList.add('success');
+    submitBtn.querySelector('.btnText').textContent = 'Welcome back ✓';
+    mouth.setAttribute('d', 'M116 128 Q131 145 146 128');
+    uncoverEyes();
+  }, 1100);
+});
+})();
+</script>
+</body>
+</html>

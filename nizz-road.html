@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIZZ ROAD — Drive Anywhere, For Real</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-0:#070a17;
+    --navy-1:#0e1430;
+    --navy-2:#161f45;
+    --cyan:#4ce0ff;
+    --amber:#ffb454;
+    --fog:#8fa3c9;
+    --ink:#e8ecf5;
+    --ink-dim:#9aa6c4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:var(--navy-0);
+    font-family:'Inter',sans-serif;color:var(--ink);}
+  #canvas-wrap{position:fixed;inset:0;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+
+  .display{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.04em;}
+
+  /* ---------- Loading tunnel ---------- */
+  #loader{
+    position:fixed;inset:0;background:var(--navy-0);z-index:50;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:opacity .6s ease;
+  }
+  #loader.hide{opacity:0;pointer-events:none;}
+  #tunnel{width:min(70vw,420px);height:min(70vw,420px);position:relative;margin-bottom:28px;}
+  #tunnel svg{width:100%;height:100%;}
+  .tline{stroke:var(--cyan);stroke-width:1;opacity:0.55;transform-origin:center;
+    animation:rush 1.4s linear infinite;}
+  .tline:nth-child(2){animation-delay:.2s;stroke:var(--fog);opacity:.35;}
+  .tline:nth-child(3){animation-delay:.4s;}
+  .tline:nth-child(4){animation-delay:.6s;stroke:var(--fog);opacity:.3;}
+  .tline:nth-child(5){animation-delay:.8s;}
+  .tline:nth-child(6){animation-delay:1.0s;stroke:var(--fog);opacity:.3;}
+  @keyframes rush{
+    0%{transform:scale(0.05);opacity:0;}
+    15%{opacity:.7;}
+    100%{transform:scale(1.6);opacity:0;}
+  }
+  #loader-label{font-size:13px;letter-spacing:.28em;color:var(--ink-dim);text-transform:uppercase;}
+  #loader-title{font-size:28px;color:var(--ink);margin-bottom:6px;}
+  #loader-sub{font-size:12px;color:var(--cyan);margin-top:10px;min-height:16px;letter-spacing:.02em;}
+
+  /* ---------- HUD ---------- */
+  .hud{position:fixed;z-index:10;pointer-events:none;}
+  .glass{
+    background:rgba(14,20,48,0.55);
+    border:1px solid rgba(140,170,255,0.14);
+    backdrop-filter:blur(10px);
+    border-radius:12px;
+  }
+  #topbar{top:0;left:0;right:0;display:flex;align-items:center;gap:10px;
+    padding:12px 14px;justify-content:space-between;}
+  #brand{display:flex;align-items:center;gap:8px;pointer-events:none;}
+  #brand .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 10px var(--cyan);}
+  #brand .name{font-size:18px;letter-spacing:.06em;}
+  #brand .name b{color:var(--cyan);}
+
+  #searchbar{pointer-events:auto;display:flex;gap:6px;padding:6px 6px 6px 12px;
+    align-items:center;max-width:min(62vw,340px);}
+  #searchbar input{
+    background:transparent;border:none;outline:none;color:var(--ink);
+    font-family:'Inter',sans-serif;font-size:13px;width:100%;min-width:0;
+  }
+  #searchbar input::placeholder{color:var(--ink-dim);}
+  #searchbar button{
+    background:var(--cyan);color:var(--navy-0);border:none;border-radius:8px;
+    padding:7px 12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;
+    letter-spacing:.05em;cursor:pointer;white-space:nowrap;
+  }
+  #searchbar button:active{transform:scale(0.96);}
+
+  #nightbtn, #rainbtn{pointer-events:auto;width:34px;height:34px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;
+    border:1px solid rgba(140,170,255,0.14);}
+
+  #status{position:fixed;top:60px;left:14px;pointer-events:none;padding:6px 12px;
+    font-size:12px;color:var(--ink-dim);letter-spacing:.02em;max-width:70vw;}
+
+  /* bottom HUD */
+  #bottombar{bottom:16px;left:14px;right:14px;display:flex;justify-content:space-between;
+    align-items:flex-end;gap:12px;}
+
+  #speedo{padding:12px 20px;display:flex;flex-direction:column;align-items:center;min-width:90px;}
+  #speedval{font-size:34px;line-height:1;color:var(--ink);}
+  #speedunit{font-size:10px;color:var(--ink-dim);letter-spacing:.15em;margin-top:2px;}
+
+  #coords{padding:10px 14px;font-size:11px;color:var(--ink-dim);line-height:1.6;letter-spacing:.02em;
+    text-align:right;}
+  #coords span{color:var(--fog);}
+
+  #controls-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    padding:8px 16px;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;
+    display:flex;gap:14px;pointer-events:none;}
+  #controls-hint b{color:var(--cyan);}
+
+  /* mobile touch controls */
+  #touchpad{position:fixed;bottom:16px;right:14px;z-index:11;display:none;
+    grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;pointer-events:auto;}
+  #touchpad .tbtn{
+    background:rgba(14,20,48,0.6);border:1px solid rgba(140,170,255,0.18);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--cyan);
+    user-select:none;
+  }
+  #touchpad .tbtn:active{background:rgba(76,224,255,0.18);}
+  @media (max-width:760px){
+    #touchpad{display:grid;}
+    #controls-hint{display:none;}
+    #bottombar{align-items:flex-end;}
+    #searchbar{max-width:44vw;}
+  }
+
+  #errbox{position:fixed;top:96px;left:14px;right:14px;z-index:12;padding:10px 14px;
+    background:rgba(255,90,90,0.12);border:1px solid rgba(255,120,120,0.3);border-radius:10px;
+    font-size:12px;color:#ffb4b4;display:none;}
+
+  /* ---------- Minimap ---------- */
+  #minimap{position:fixed;top:64px;right:14px;z-index:10;padding:6px;width:128px;height:128px;}
+  #minimap canvas{width:100%;height:100%;border-radius:8px;display:block;}
+  #minimap-label{position:absolute;top:-1px;left:0;right:0;text-align:center;font-size:9px;
+    color:var(--ink-dim);letter-spacing:.18em;transform:translateY(-16px);}
+
+  /* ---------- Handbrake ---------- */
+  #handbrake{position:fixed;z-index:11;bottom:16px;left:14px;pointer-events:auto;
+    width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,140,60,0.14);border:1px solid rgba(255,160,80,0.35);
+    font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;color:var(--amber);
+    letter-spacing:.04em;user-select:none;line-height:1.15;text-align:center;}
+  #handbrake.active{background:rgba(255,140,60,0.4);}
+  @media (max-width:760px){
+    #handbrake{bottom:96px;left:14px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+
+<!-- Loader -->
+<div id="loader">
+  <div id="tunnel">
+    <svg viewBox="0 0 100 100">
+      <line class="tline" x1="50" y1="50" x2="4" y2="4" />
+      <line class="tline" x1="50" y1="50" x2="96" y2="4" />
+      <line class="tline" x1="50" y1="50" x2="4" y2="96" />
+      <line class="tline" x1="50" y1="50" x2="96" y2="96" />
+      <line class="tline" x1="50" y1="50" x2="50" y2="0" />
+      <line class="tline" x1="50" y1="50" x2="0" y2="50" />
+    </svg>
+  </div>
+  <div id="loader-label">Nizz Road</div>
+  <div id="loader-title" class="display">Building the road ahead</div>
+  <div id="loader-sub">contacting OpenStreetMap…</div>
+</div>
+
+<div id="errbox"></div>
+
+<div id="minimap" class="glass hud">
+  <div id="minimap-label">MAP</div>
+  <canvas id="minimapCanvas" width="128" height="128"></canvas>
+</div>
+
+<div id="handbrake">HAND<br>BRAKE</div>
+
+
+<!-- HUD -->
+<div class="hud" id="topbar">
+  <div id="brand">
+    <div class="dot"></div>
+    <div class="name display">NIZZ<b>ROAD</b></div>
+  </div>
+  <div id="searchbar" class="glass">
+    <input id="placeInput" type="text" placeholder="Type a city or road… e.g. MG Road Bangalore" />
+    <button id="goBtn">HOP</button>
+  </div>
+  <div id="nightbtn" class="glass">🌙</div>
+  <div id="rainbtn" class="glass">🌦️</div>
+</div>
+
+<div id="status" class="glass"></div>
+
+<div class="hud" id="bottombar">
+  <div id="speedo" class="glass">
+    <div id="speedval" class="display">0</div>
+    <div id="speedunit">KM/H</div>
+  </div>
+  <div id="coords" class="glass">
+    <div>LOCATION <span id="locname">Bengaluru, IN</span></div>
+    <div>LAT <span id="latval">—</span> · LON <span id="lonval">—</span></div>
+  </div>
+</div>
+
+<div id="controls-hint">
+  <span><b>↑ / W</b> Accelerate</span>
+  <span><b>↓ / S</b> Brake</span>
+  <span><b>← →</b> Steer</span>
+  <span><b>N</b> Toggle Night</span>
+  <span><b>R</b> Toggle Rain</span>
+  <span><b>Space</b> Handbrake</span>
+</div>
+
+<div id="touchpad">
+  <div></div><div class="tbtn" id="btn-up">▲</div><div></div>
+  <div class="tbtn" id="btn-left">◀</div><div class="tbtn" id="btn-down">▼</div><div class="tbtn" id="btn-right">▶</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   NIZZ ROAD — drive any real road, generated live from OSM data
+   Core pipeline: geocode place -> Overpass API road geometry ->
+   project lat/lon to local meters -> extrude road ribbons ->
+   drive a car over them with a chase camera.
+   ============================================================ */
+
+let scene, camera, renderer, clock;
+let carGroup, headlightL, headlightR, dirLight, ambLight, hemiLight, stars;
+let roadGroup, groundMesh, treeGroup, buildingGroup, rainGroup, rainMat, skidGroup;
+let isNight = false, isRaining = false;
+let originLat = 12.9716, originLon = 77.5946; // Bengaluru default (MG Road area)
+// car.x/z = position, heading = facing direction, vx/vz = actual velocity vector (can differ from heading during drift)
+let car = { x:0, z:0, heading:0, speed:0, vx:0, vz:0 };
+const CAR_MAX_SPEED = 42;      // m/s ~ 150 km/h cap
+const ACCEL = 14, BRAKE = 26, FRICTION = 6, TURN_RATE = 2.0;
+const GRIP_NORMAL = 9.5, GRIP_DRIFT = 2.2; // how fast velocity vector aligns to heading
+
+// lightweight geometry kept for the minimap (2D top-down), separate from the 3D meshes
+let minimapRoads = [];   // {x1,z1,x2,z2,primary}
+let minimapBuildings = []; // {x,z,w,d}
+let minimapCanvas, minimapCtx;
+
+const input = { up:false, down:false, left:false, right:false, handbrake:false };
+
+const statusEl = document.getElementById('status');
+const errEl = document.getElementById('errbox');
+const loaderSub = document.getElementById('loader-sub');
+const loaderEl = document.getElementById('loader');
+
+function setStatus(msg){ statusEl.textContent = msg; }
+function showError(msg){
+  errEl.textContent = msg; errEl.style.display = 'block';
+  setTimeout(()=>{ errEl.style.display='none'; }, 5000);
+}
+
+/* ---------------- projection helpers ---------------- */
+// Equirectangular local projection around origin, in meters.
+function project(lat, lon){
+  const R = 6378137;
+  const x = (lon - originLon) * Math.PI/180 * R * Math.cos(originLat*Math.PI/180);
+  const z = -(lat - originLat) * Math.PI/180 * R; // north = -z (forward into screen)
+  return { x, z };
+}
+
+/* ---------------- three.js setup ---------------- */
+function initScene(){
+  scene = new THREE.Scene();
+  clock = new THREE.Clock();
+
+  camera = new THREE.PerspectiveCamera(62, window.innerWidth/window.innerHeight, 0.1, 4000);
+
+  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.getElementById('canvas-wrap').appendChild(renderer.domElement);
+
+  // Ground — procedural sand/earth texture so open areas away from roads don't look flat/empty
+  const groundGeo = new THREE.PlaneGeometry(6000, 6000, 1, 1);
+  const groundTex = makeGroundTexture();
+  const groundMat = new THREE.MeshStandardMaterial({ map: groundTex, color: 0x9c8a5e, roughness:1 });
+  groundMesh = new THREE.Mesh(groundGeo, groundMat);
+  groundMesh.rotation.x = -Math.PI/2;
+  scene.add(groundMesh);
+
+  // subtle grid overlay for motion perception
+  const grid = new THREE.GridHelper(6000, 300, 0x2a3358, 0x222944);
+  grid.position.y = 0.02;
+  scene.add(grid);
+
+  roadGroup = new THREE.Group(); scene.add(roadGroup);
+  treeGroup = new THREE.Group(); scene.add(treeGroup);
+  buildingGroup = new THREE.Group(); scene.add(buildingGroup);
+
+  // lights
+  hemiLight = new THREE.HemisphereLight(0x8fa3c9, 0x0e1430, 0.55);
+  scene.add(hemiLight);
+  dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(300, 400, 200);
+  scene.add(dirLight);
+  ambLight = new THREE.AmbientLight(0xffffff, 0.25);
+  scene.add(ambLight);
+
+  buildCar();
+  buildStars();
+  buildRain();
+  buildSkidPool();
+  applyNightMode(false);
+
+  minimapCanvas = document.getElementById('minimapCanvas');
+  minimapCtx = minimapCanvas.getContext('2d');
+
+  window.addEventListener('resize', onResize);
+}
+
+// Procedural ground texture: sandy/earthy base with patches of dry grass,
+// so surfaces beyond the road network still read as real terrain, not a void.
+function makeGroundTexture(){
+  const size = 512;
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#8a7550'; ctx.fillRect(0,0,size,size); // sand base
+  // grass patches
+  for(let i=0;i<70;i++){
+    const x = Math.random()*size, y = Math.random()*size, r = 18+Math.random()*46;
+    const grad = ctx.createRadialGradient(x,y,0,x,y,r);
+    grad.addColorStop(0, 'rgba(90,110,55,0.55)');
+    grad.addColorStop(1, 'rgba(90,110,55,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  // sand grain speckle
+  for(let i=0;i<2200;i++){
+    ctx.fillStyle = Math.random()>0.5 ? 'rgba(255,235,190,0.06)' : 'rgba(60,45,20,0.08)';
+    ctx.fillRect(Math.random()*size, Math.random()*size, 1.5, 1.5);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(220, 220);
+  return tex;
+}
+
+function buildCar(){
+  carGroup = new THREE.Group();
+  const paintMat = new THREE.MeshStandardMaterial({ color: 0xb0212b, metalness:0.6, roughness:0.28 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0c1420, metalness:0.2, roughness:0.15, transparent:true, opacity:0.85 });
+  const trimMat  = new THREE.MeshStandardMaterial({ color: 0x111318, metalness:0.4, roughness:0.5 });
+  const chromeMat= new THREE.MeshStandardMaterial({ color: 0xd8dde6, metalness:0.9, roughness:0.2 });
+
+  // lower body — sedan silhouette built from a few stacked/tapered boxes
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.5, 4.3), paintMat);
+  lower.position.y = 0.42;
+  carGroup.add(lower);
+
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.32, 1.3), paintMat);
+  hood.position.set(0, 0.66, -1.55);
+  carGroup.add(hood);
+
+  const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.3, 1.0), paintMat);
+  trunk.position.set(0, 0.66, 1.75);
+  carGroup.add(trunk);
+
+  // greenhouse / cabin, gently tapered for a sedan roofline
+  const cabinLower = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.42, 2.3), paintMat);
+  cabinLower.position.set(0, 0.86, -0.05);
+  carGroup.add(cabinLower);
+
+  const cabinGlass = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.4, 2.05), glassMat);
+  cabinGlass.position.set(0, 1.12, -0.05);
+  carGroup.add(cabinGlass);
+
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 1.7), paintMat);
+  roof.position.set(0, 1.35, -0.15);
+  carGroup.add(roof);
+
+  // side mirrors
+  [-0.95, 0.95].forEach(x=>{
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.12,0.22), trimMat);
+    m.position.set(x, 0.9, -1.0);
+    carGroup.add(m);
+  });
+
+  // front grille + badge plate (generic — no third-party logo)
+  const grille = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.22, 0.05), trimMat);
+  grille.position.set(0, 0.5, -2.16);
+  carGroup.add(grille);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(0.09, 20), chromeMat);
+  badge.position.set(0, 0.58, -2.19);
+  carGroup.add(badge);
+
+  // bumpers
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x14161c, roughness:0.6 });
+  const fBumper = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.28, 0.3), bumperMat);
+  fBumper.position.set(0, 0.3, -2.15);
+  carGroup.add(fBumper);
+  const rBumper = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.28, 0.3), bumperMat);
+  rBumper.position.set(0, 0.3, 2.15);
+  carGroup.add(rBumper);
+
+  // wheels with simple rim detail
+  const tireGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.26, 20);
+  const tireMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness:0.9 });
+  const rimGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.28, 12);
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xc7ccd6, metalness:0.85, roughness:0.3 });
+  const wheelPositions = [[-0.92,0.36,1.35],[0.92,0.36,1.35],[-0.92,0.36,-1.35],[0.92,0.36,-1.35]];
+  wheelPositions.forEach(p=>{
+    const w = new THREE.Group();
+    const tire = new THREE.Mesh(tireGeo, tireMat); tire.rotation.z = Math.PI/2;
+    const rim = new THREE.Mesh(rimGeo, rimMat); rim.rotation.z = Math.PI/2;
+    w.add(tire, rim);
+    w.position.set(p[0], p[1], p[2]);
+    carGroup.add(w);
+  });
+
+  // taillights
+  const tailMat = new THREE.MeshStandardMaterial({ color: 0xff4d4d, emissive:0xff2222, emissiveIntensity:1.2 });
+  [-0.72, 0.72].forEach(x=>{
+    const t = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.16,0.06), tailMat);
+    t.position.set(x, 0.62, 2.18);
+    carGroup.add(t);
+  });
+
+  // headlights (visual + actual lights)
+  const headMat = new THREE.MeshStandardMaterial({ color: 0xfff6d8, emissive:0xfff2b0, emissiveIntensity:1.4 });
+  [-0.72, 0.72].forEach(x=>{
+    const h = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.16,0.06), headMat);
+    h.position.set(x, 0.55, -2.18);
+    carGroup.add(h);
+  });
+
+  headlightL = new THREE.SpotLight(0xfff2c0, 0, 60, Math.PI/6, 0.4, 1.2);
+  headlightL.position.set(-0.72, 0.65, -2.15);
+  headlightR = new THREE.SpotLight(0xfff2c0, 0, 60, Math.PI/6, 0.4, 1.2);
+  headlightR.position.set(0.72, 0.65, -2.15);
+  carGroup.add(headlightL, headlightL.target, headlightR, headlightR.target);
+  headlightL.target.position.set(-0.72, 0.3, -20);
+  headlightR.target.position.set(0.72, 0.3, -20);
+
+  scene.add(carGroup);
+}
+
+function buildStars(){
+  const geo = new THREE.BufferGeometry();
+  const N = 900, positions = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const r = 1200 + Math.random()*600;
+    const theta = Math.random()*Math.PI*2;
+    const phi = Math.random()*Math.PI*0.5;
+    positions[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+    positions[i*3+1] = 150 + r*Math.cos(phi)*0.6;
+    positions[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  const mat = new THREE.PointsMaterial({ color:0xffffff, size:1.6, sizeAttenuation:false, transparent:true, opacity:0 });
+  stars = new THREE.Points(geo, mat);
+  scene.add(stars);
+}
+
+/* ---------------- rain ---------------- */
+function buildRain(){
+  rainGroup = new THREE.Group();
+  const N = 1400;
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(N*3);
+  const speeds = new Float32Array(N);
+  for(let i=0;i<N;i++){
+    positions[i*3]   = (Math.random()-0.5)*140;
+    positions[i*3+1] = Math.random()*60;
+    positions[i*3+2] = (Math.random()-0.5)*140;
+    speeds[i] = 28 + Math.random()*14;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  rainMat = new THREE.PointsMaterial({ color:0xbcd4ff, size:0.12, transparent:true, opacity:0, sizeAttenuation:true });
+  const rainPts = new THREE.Points(geo, rainMat);
+  rainPts.userData.speeds = speeds;
+  rainGroup.add(rainPts);
+  scene.add(rainGroup);
+}
+
+function updateRain(dt){
+  if(!isRaining) return;
+  const pts = rainGroup.children[0];
+  const arr = pts.geometry.attributes.position.array;
+  const speeds = pts.userData.speeds;
+  for(let i=0;i<speeds.length;i++){
+    arr[i*3+1] -= speeds[i]*dt;
+    if(arr[i*3+1] < 0){ arr[i*3+1] = 55 + Math.random()*10; }
+  }
+  pts.geometry.attributes.position.needsUpdate = true;
+  rainGroup.position.set(car.x, 0, car.z);
+}
+
+function setRaining(on){
+  isRaining = on;
+  document.getElementById('rainbtn').textContent = on ? '🌧️' : '🌦️';
+  rainMat.opacity = on ? 0.55 : 0;
+  scene.fog.near = on ? Math.min(scene.fog.near, 30) : scene.fog.near;
+  if(on){
+    hemiLight.intensity *= 0.75;
+    groundMesh.material.roughness = 0.5; // wet sheen
+  } else {
+    groundMesh.material.roughness = 1.0;
+  }
+}
+
+/* ---------------- skid marks (drift trail) ---------------- */
+function buildSkidPool(){
+  skidGroup = new THREE.Group();
+  scene.add(skidGroup);
+}
+const skidMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a, transparent:true, opacity:0.4, depthWrite:false });
+function dropSkidMark(x, z, heading){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.9), skidMat.clone());
+  m.rotation.x = -Math.PI/2;
+  m.rotation.z = -heading;
+  m.position.set(x, 0.045, z);
+  m.userData.life = 6.0;
+  skidGroup.add(m);
+  if(skidGroup.children.length > 260){
+    const old = skidGroup.children.shift();
+    old.geometry.dispose(); old.material.dispose();
+    skidGroup.remove(old);
+  }
+}
+function updateSkidMarks(dt){
+  for(let i=skidGroup.children.length-1;i>=0;i--){
+    const m = skidGroup.children[i];
+    m.userData.life -= dt;
+    m.material.opacity = Math.max(0, 0.4 * (m.userData.life/6.0));
+    if(m.userData.life <= 0){
+      m.geometry.dispose(); m.material.dispose();
+      skidGroup.remove(m);
+    }
+  }
+}
+
+/* ---------------- minimap (top-down, heading-up) ---------------- */
+function drawMinimap(){
+  if(!minimapCtx) return;
+  const ctx = minimapCtx, W = 128, H = 128;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(10,14,32,0.9)';
+  ctx.fillRect(0,0,W,H);
+
+  const viewRadius = 95; // meters shown top-to-center
+  const scale = (H/2) / viewRadius;
+  const cos = Math.cos(-car.heading), sin = Math.sin(-car.heading);
+
+  function toScreen(x, z){
+    const rx = x - car.x, rz = z - car.z;
+    const sx = rx*cos - rz*sin;
+    const sz = rx*sin + rz*cos;
+    return { sx: W/2 + sx*scale, sy: H/2 + sz*scale };
+  }
+
+  ctx.fillStyle = 'rgba(140,160,210,0.35)';
+  minimapBuildings.forEach(b=>{
+    if(Math.abs(b.x-car.x) > viewRadius+20 || Math.abs(b.z-car.z) > viewRadius+20) return;
+    const p = toScreen(b.x, b.z);
+    const sz = Math.max(2, b.w*scale*0.5);
+    ctx.fillRect(p.sx-sz/2, p.sy-sz/2, sz, sz);
+  });
+
+  minimapRoads.forEach(r=>{
+    const a = toScreen(r.x1, r.z1), b = toScreen(r.x2, r.z2);
+    ctx.strokeStyle = r.primary ? 'rgba(76,224,255,0.85)' : 'rgba(160,175,210,0.5)';
+    ctx.lineWidth = r.primary ? 2.4 : 1.4;
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+  });
+
+  ctx.fillStyle = '#ffb454';
+  ctx.beginPath();
+  ctx.moveTo(W/2, H/2-6);
+  ctx.lineTo(W/2-4.5, H/2+5);
+  ctx.lineTo(W/2+4.5, H/2+5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath(); ctx.arc(W/2,H/2,H/2-2,0,Math.PI*2); ctx.stroke();
+}
+
+/* ---------------- trees & buildings ---------------- */
+function clearGroup(g){
+  while(g.children.length){
+    const m = g.children.pop();
+    m.traverse ? m.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }) : null;
+  }
+}
+
+const trunkGeo = new THREE.CylinderGeometry(0.14, 0.18, 1.6, 7);
+const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3524, roughness:0.9 });
+const foliageGeo = new THREE.ConeGeometry(1.15, 2.4, 8);
+const foliageMatVariants = [0x2f5d34, 0x336b3a, 0x2a5230].map(c=>new THREE.MeshStandardMaterial({ color:c, roughness:0.85 }));
+
+function makeTree(){
+  const t = new THREE.Group();
+  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+  trunk.position.y = 0.8;
+  const foliage = new THREE.Mesh(foliageGeo, foliageMatVariants[Math.floor(Math.random()*3)]);
+  foliage.position.y = 2.15;
+  t.add(trunk, foliage);
+  const s = 0.75 + Math.random()*0.6;
+  t.scale.set(s,s,s);
+  return t;
+}
+
+function buildTreesAlongRoads(ways){
+  clearGroup(treeGroup);
+  let placed = 0;
+  const MAX_TREES = 380;
+  ways.forEach(way=>{
+    if(!way.geometry || way.geometry.length < 2) return;
+    const tag = (way.tags && way.tags.highway) || 'residential';
+    if(tag === 'footway' || tag === 'path') return;
+    const width = widthForHighway(tag);
+    const pts = way.geometry.map(g=>project(g.lat, g.lon));
+    for(let i=0;i<pts.length-1 && placed < MAX_TREES;i++){
+      const a = pts[i], b = pts[i+1];
+      const dx = b.x-a.x, dz = b.z-a.z;
+      const len = Math.sqrt(dx*dx+dz*dz);
+      if(len < 6) continue;
+      const nx = -dz/len, nz = dx/len; // perpendicular
+      const steps = Math.floor(len/14);
+      for(let s=0;s<steps && placed<MAX_TREES;s++){
+        if(Math.random() < 0.35) continue; // sparser, natural spacing
+        const t = a.x + dx*(s/steps), tz = a.z + dz*(s/steps);
+        [1,-1].forEach(side=>{
+          if(Math.random() < 0.5 || placed>=MAX_TREES) return;
+          const offset = width/2 + 2.5 + Math.random()*3;
+          const tree = makeTree();
+          tree.position.set(t + nx*offset*side, 0, tz + nz*offset*side);
+          treeGroup.add(tree);
+          placed++;
+        });
+      }
+    }
+  });
+  return placed;
+}
+
+function buildBuildingsFromWays(ways){
+  clearGroup(buildingGroup);
+  minimapBuildings = [];
+  const winCanvas = document.createElement('canvas'); winCanvas.width = winCanvas.height = 64;
+  const wctx = winCanvas.getContext('2d');
+  wctx.fillStyle = '#232838'; wctx.fillRect(0,0,64,64);
+  wctx.fillStyle = '#e8c878';
+  for(let y=4;y<64;y+=10) for(let x=4;x<64;x+=10) if(Math.random()>0.35) wctx.fillRect(x,y,5,6);
+  const winTex = new THREE.CanvasTexture(winCanvas);
+  winTex.wrapS = winTex.wrapT = THREE.RepeatWrapping;
+
+  let placed = 0;
+  const MAX_B = 160;
+  ways.forEach(way=>{
+    if(placed >= MAX_B) return;
+    if(!way.geometry || way.geometry.length < 3) return;
+    const pts = way.geometry.map(g=>project(g.lat, g.lon));
+    let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+    pts.forEach(p=>{ minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x); minZ=Math.min(minZ,p.z); maxZ=Math.max(maxZ,p.z); });
+    const w = maxX-minX, d = maxZ-minZ;
+    if(w < 3 || d < 3 || w > 120 || d > 120) return;
+    const h = 6 + Math.random()*Math.random()*34;
+    const tex = winTex.clone(); tex.needsUpdate = true;
+    tex.repeat.set(Math.max(1,Math.round(w/3)), Math.max(1,Math.round(h/3)));
+    const mat = new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness:0.8 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x3a3f4c, roughness:0.9 });
+    const mats = [mat,mat,roofMat,roofMat,mat,mat];
+    const b = new THREE.Mesh(new THREE.BoxGeometry(Math.max(3,w*0.85), h, Math.max(3,d*0.85)), mats);
+    b.position.set((minX+maxX)/2, h/2, (minZ+maxZ)/2);
+    buildingGroup.add(b);
+    minimapBuildings.push({ x:(minX+maxX)/2, z:(minZ+maxZ)/2, w:Math.max(3,w*0.85), d:Math.max(3,d*0.85) });
+    placed++;
+  });
+  return placed;
+}
+
+function applyNightMode(night){
+  isNight = night;
+  document.getElementById('nightbtn').textContent = night ? '☀️' : '🌙';
+  if(night){
+    scene.background = new THREE.Color(0x050810);
+    scene.fog = new THREE.Fog(0x050810, 40, 420);
+    hemiLight.intensity = 0.18;
+    dirLight.intensity = 0.12;
+    ambLight.intensity = 0.06;
+    headlightL.intensity = 2.4;
+    headlightR.intensity = 2.4;
+    groundMesh.material.color.set(0x0c0f22);
+    stars.material.opacity = 0.85;
+  } else {
+    scene.background = new THREE.Color(0x8fb4de);
+    scene.fog = new THREE.Fog(0x8fb4de, 60, 900);
+    hemiLight.intensity = 0.7;
+    dirLight.intensity = 1.0;
+    ambLight.intensity = 0.3;
+    headlightL.intensity = 0;
+    headlightR.intensity = 0;
+    groundMesh.material.color.set(0x1a2036);
+    stars.material.opacity = 0;
+  }
+}
+
+function onResize(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+/* ---------------- road building from OSM ---------------- */
+function clearRoads(){
+  while(roadGroup.children.length){
+    const m = roadGroup.children.pop();
+    m.geometry.dispose(); m.material.dispose();
+  }
+}
+
+function widthForHighway(tag){
+  switch(tag){
+    case 'motorway': case 'trunk': return 11;
+    case 'primary': return 9;
+    case 'secondary': return 7.5;
+    case 'tertiary': return 6.5;
+    case 'residential': case 'unclassified': return 5.5;
+    case 'service': return 3.5;
+    case 'footway': case 'path': case 'cycleway': return 2;
+    default: return 5;
+  }
+}
+
+function buildRoadsFromOverpass(elements){
+  clearRoads();
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0x2b2f3a, roughness:0.95 });
+  const laneMat = new THREE.MeshStandardMaterial({ color: 0xd9c98a, emissive:0x33301a, emissiveIntensity:0.15 });
+  let count = 0;
+  const highwayWays = elements.filter(w => w.tags && w.tags.highway);
+  minimapRoads = [];
+
+  highwayWays.forEach(way=>{
+    if(!way.geometry || way.geometry.length < 2) return;
+    const tag = way.tags.highway;
+    const width = widthForHighway(tag);
+    const pts = way.geometry.map(g=>project(g.lat, g.lon));
+    const isPrimary = (tag === 'motorway' || tag === 'trunk' || tag === 'primary');
+
+    for(let i=0;i<pts.length-1;i++){
+      const a = pts[i], b = pts[i+1];
+      const dx = b.x-a.x, dz = b.z-a.z;
+      const len = Math.sqrt(dx*dx+dz*dz);
+      if(len < 0.05) continue;
+      const angle = Math.atan2(dx, dz);
+
+      const seg = new THREE.Mesh(new THREE.PlaneGeometry(width, len), roadMat);
+      seg.rotation.x = -Math.PI/2;
+      seg.rotation.z = -angle;
+      seg.position.set((a.x+b.x)/2, 0.04, (a.z+b.z)/2);
+      roadGroup.add(seg);
+
+      if(width >= 6.5 && len > 4){
+        const lane = new THREE.Mesh(new THREE.PlaneGeometry(0.25, len*0.6), laneMat);
+        lane.rotation.x = -Math.PI/2;
+        lane.rotation.z = -angle;
+        lane.position.set((a.x+b.x)/2, 0.05, (a.z+b.z)/2);
+        roadGroup.add(lane);
+      }
+      count++;
+    }
+    // joint fill so corners don't gap
+    if(pts.length>2){
+      pts.forEach(p=>{
+        const j = new THREE.Mesh(new THREE.CircleGeometry(width/2, 12), roadMat);
+        j.rotation.x = -Math.PI/2;
+        j.position.set(p.x, 0.04, p.z);
+        roadGroup.add(j);
+      });
+    }
+    for(let i=0;i<pts.length-1;i++){
+      minimapRoads.push({ x1:pts[i].x, z1:pts[i].z, x2:pts[i+1].x, z2:pts[i+1].z, primary:isPrimary });
+    }
+  });
+  return count;
+}
+
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+];
+
+function fetchWithTimeout(url, opts, ms){
+  return Promise.race([
+    fetch(url, opts),
+    new Promise((_, reject)=> setTimeout(()=>reject(new Error('Request timed out')), ms))
+  ]);
+}
+
+async function fetchRoads(lat, lon){
+  const query = `[out:json][timeout:20];(way["highway"](around:1400,${lat},${lon});way["building"](around:900,${lat},${lon}););out geom;`;
+  let lastErr = null;
+  for(let i=0;i<OVERPASS_MIRRORS.length;i++){
+    const base = OVERPASS_MIRRORS[i];
+    try{
+      loaderSub.textContent = `pulling road geometry… (source ${i+1}/${OVERPASS_MIRRORS.length})`;
+      const res = await fetchWithTimeout(
+        base + '?data=' + encodeURIComponent(query),
+        { method:'GET', headers:{ 'Accept':'application/json' } },
+        12000
+      );
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if(data && data.elements) return data.elements;
+      throw new Error('Empty response');
+    } catch(err){
+      lastErr = err;
+      console.warn('Overpass mirror failed:', base, err.message);
+    }
+  }
+  throw new Error('All road-data sources unreachable (' + (lastErr ? lastErr.message : 'unknown') + '). Your network may be blocking these domains.');
+}
+
+async function geocode(place){
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(place);
+  try{
+    const res = await fetchWithTimeout(url, { headers: { 'Accept':'application/json' } }, 10000);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if(!data.length) throw new Error('Place not found');
+    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name };
+  } catch(err){
+    throw new Error('Geocoding unreachable: ' + err.message);
+  }
+}
+
+// Synthetic fallback city so there's always something rich to drive through
+// when the sandbox can't reach live OSM data — a real Manhattan-style grid
+// of avenues, side streets, and building blocks (not just a bare cross).
+function buildFallbackCity(){
+  const roads = [];
+  const mPerLat = 110540, mPerLon = 111320*Math.cos(originLat*Math.PI/180);
+  const toLatLon = (x,z) => ({ lat: originLat - z/mPerLat, lon: originLon + x/mPerLon });
+  const span = 6, block = 55;
+
+  for(let gx=-span; gx<=span; gx++){
+    const x = gx*block;
+    const tag = (gx % 3 === 0) ? 'primary' : 'residential';
+    const a = toLatLon(x, -span*block), b = toLatLon(x, span*block);
+    roads.push({ tags:{highway:tag}, geometry:[a,b] });
+  }
+  for(let gz=-span; gz<=span; gz++){
+    const z = gz*block;
+    const tag = (gz % 3 === 0) ? 'primary' : 'residential';
+    const a = toLatLon(-span*block, z), b = toLatLon(span*block, z);
+    roads.push({ tags:{highway:tag}, geometry:[a,b] });
+  }
+
+  const buildings = [];
+  for(let gx=-span; gx<span; gx++){
+    for(let gz=-span; gz<span; gz++){
+      if(Math.abs(gx) < 1 && Math.abs(gz) < 1) continue; // keep spawn area open
+      if(Math.random() < 0.3) continue;
+      const cx = gx*block + block/2, cz = gz*block + block/2;
+      const w = 14 + Math.random()*20, d = 14 + Math.random()*20;
+      const corners = [
+        [cx-w/2, cz-d/2], [cx+w/2, cz-d/2], [cx+w/2, cz+d/2], [cx-w/2, cz+d/2]
+      ].map(([x,z])=>toLatLon(x,z));
+      buildings.push({ tags:{building:'yes'}, geometry: corners });
+    }
+  }
+  return { roads, buildings };
+}
+
+async function hopTo(lat, lon, label){
+  loaderEl.classList.remove('hide');
+  loaderSub.textContent = 'contacting OpenStreetMap…';
+  try{
+    originLat = lat; originLon = lon;
+    car.x = 0; car.z = 0; car.heading = 0; car.speed = 0; car.vx = 0; car.vz = 0;
+    document.getElementById('locname').textContent = label || `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+
+    loaderSub.textContent = 'pulling road geometry…';
+    const elements = await fetchRoads(lat, lon);
+    loaderSub.textContent = 'laying tarmac…';
+    const count = buildRoadsFromOverpass(elements);
+    loaderSub.textContent = 'planting roadside trees…';
+    const treeCount = buildTreesAlongRoads(elements.filter(w=>w.tags && w.tags.highway));
+    loaderSub.textContent = 'raising buildings…';
+    const bCount = buildBuildingsFromWays(elements.filter(w=>w.tags && w.tags.building));
+    setStatus(count ? `${count} road segments · ${bCount} buildings · ${treeCount} trees loaded live from OpenStreetMap.` : 'Few roads found nearby — try a denser area.');
+  } catch(err){
+    console.error(err);
+    showError('Sandbox preview can\'t reach live OSM servers (' + err.message + '). Showing a procedural city instead — deploy this file to Netlify to get real live roads.');
+    const city = buildFallbackCity();
+    const count = buildRoadsFromOverpass(city.roads);
+    const bCount = buildBuildingsFromWays(city.buildings);
+    const treeCount = buildTreesAlongRoads(city.roads);
+    setStatus(`Procedural preview city active (${count} segments · ${bCount} buildings · ${treeCount} trees) — deploy to Netlify for real live OSM data.`);
+  } finally {
+    loaderEl.classList.add('hide');
+  }
+}
+
+/* ---------------- controls ---------------- */
+window.addEventListener('keydown', e=>{
+  if(['ArrowUp','w','W'].includes(e.key)) input.up = true;
+  if(['ArrowDown','s','S'].includes(e.key)) input.down = true;
+  if(['ArrowLeft','a','A'].includes(e.key)) input.left = true;
+  if(['ArrowRight','d','D'].includes(e.key)) input.right = true;
+  if(e.key===' ') { input.handbrake = true; e.preventDefault(); }
+  if(e.key==='n' || e.key==='N') applyNightMode(!isNight);
+  if(e.key==='r' || e.key==='R') setRaining(!isRaining);
+});
+window.addEventListener('keyup', e=>{
+  if(['ArrowUp','w','W'].includes(e.key)) input.up = false;
+  if(['ArrowDown','s','S'].includes(e.key)) input.down = false;
+  if(['ArrowLeft','a','A'].includes(e.key)) input.left = false;
+  if(['ArrowRight','d','D'].includes(e.key)) input.right = false;
+  if(e.key===' ') input.handbrake = false;
+});
+function bindTouch(id, key){
+  const el = document.getElementById(id);
+  const set = v => e => { e.preventDefault(); input[key]=v; };
+  el.addEventListener('touchstart', set(true), {passive:false});
+  el.addEventListener('touchend', set(false), {passive:false});
+  el.addEventListener('mousedown', set(true));
+  el.addEventListener('mouseup', set(false));
+  el.addEventListener('mouseleave', set(false));
+}
+bindTouch('btn-up','up'); bindTouch('btn-down','down');
+bindTouch('btn-left','left'); bindTouch('btn-right','right');
+bindTouch('handbrake','handbrake');
+document.getElementById('handbrake').addEventListener('touchstart', ()=>document.getElementById('handbrake').classList.add('active'));
+document.getElementById('handbrake').addEventListener('touchend', ()=>document.getElementById('handbrake').classList.remove('active'));
+document.getElementById('handbrake').addEventListener('mousedown', ()=>document.getElementById('handbrake').classList.add('active'));
+document.getElementById('handbrake').addEventListener('mouseup', ()=>document.getElementById('handbrake').classList.remove('active'));
+
+document.getElementById('nightbtn').addEventListener('click', ()=>applyNightMode(!isNight));
+document.getElementById('rainbtn').addEventListener('click', ()=>setRaining(!isRaining));
+document.getElementById('goBtn').addEventListener('click', doSearch);
+document.getElementById('placeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(); });
+
+async function doSearch(){
+  const q = document.getElementById('placeInput').value.trim();
+  if(!q) return;
+  loaderEl.classList.remove('hide');
+  loaderSub.textContent = 'finding ' + q + '…';
+  try{
+    const g = await geocode(q);
+    await hopTo(g.lat, g.lon, g.name.split(',').slice(0,2).join(','));
+  } catch(err){
+    loaderEl.classList.add('hide');
+    showError('Search needs live network access, which this in-chat preview sandbox blocks. Deploy to Netlify and search will work there. For now, explore the procedural city already loaded.');
+  }
+}
+
+/* ---------------- update loop ---------------- */
+function updateCar(dt){
+  if(input.up) car.speed += ACCEL*dt;
+  else if(input.down) car.speed -= BRAKE*dt;
+  else {
+    if(car.speed > 0) car.speed = Math.max(0, car.speed - FRICTION*dt);
+    else car.speed = Math.min(0, car.speed + FRICTION*dt);
+  }
+  const maxRev = CAR_MAX_SPEED*0.4;
+  const maxFwd = input.handbrake ? CAR_MAX_SPEED*0.85 : CAR_MAX_SPEED;
+  car.speed = Math.max(-maxRev, Math.min(maxFwd, car.speed));
+  if(input.handbrake) car.speed *= (1 - 0.6*dt); // handbrake scrubs some speed too
+
+  const steerFactor = Math.min(1, Math.abs(car.speed)/6);
+  const turnBoost = input.handbrake ? 1.6 : 1.0; // sharper rotation while drifting
+  if(input.left) car.heading += TURN_RATE*turnBoost*dt*steerFactor*(car.speed<0?-1:1);
+  if(input.right) car.heading -= TURN_RATE*turnBoost*dt*steerFactor*(car.speed<0?-1:1);
+
+  // desired velocity points along heading at current speed; actual velocity
+  // (car.vx/vz) lags behind it based on grip — low grip during handbrake = drift/slide
+  const desiredVx = Math.sin(car.heading)*car.speed;
+  const desiredVz = Math.cos(car.heading)*car.speed;
+  const grip = input.handbrake ? GRIP_DRIFT : GRIP_NORMAL;
+  const align = Math.min(1, grip*dt);
+  car.vx += (desiredVx - car.vx) * align;
+  car.vz += (desiredVz - car.vz) * align;
+
+  car.x += car.vx*dt;
+  car.z += car.vz*dt;
+
+  carGroup.position.set(car.x, 0, car.z);
+  // visual body rotation blends toward the actual velocity direction slightly less than
+  // pure heading so the car visibly "slides" nose-out during a drift
+  carGroup.rotation.y = car.heading;
+
+  // skid marks while drifting at speed
+  const slip = Math.hypot(desiredVx-car.vx, desiredVz-car.vz);
+  if(input.handbrake && Math.abs(car.speed) > 4){
+    dropSkidMark(car.x - Math.sin(car.heading)*0.85 + Math.cos(car.heading)*1.3,
+                 car.z - Math.cos(car.heading)*0.85 - Math.sin(car.heading)*1.3, car.heading);
+    dropSkidMark(car.x + Math.sin(car.heading)*0.85 + Math.cos(car.heading)*1.3,
+                 car.z + Math.cos(car.heading)*0.85 - Math.sin(car.heading)*1.3, car.heading);
+  }
+
+  // chase camera — pulls out slightly and lags a touch more during a drift for feel
+  const camDist = 8.5 + (slip>3 ? 1.5 : 0), camHeight = 4.2;
+  const targetX = car.x - Math.sin(car.heading)*camDist;
+  const targetZ = car.z - Math.cos(car.heading)*camDist;
+  const camLerp = slip>3 ? 2.6 : 4;
+  camera.position.x += (targetX - camera.position.x) * Math.min(1, dt*camLerp);
+  camera.position.z += (targetZ - camera.position.z) * Math.min(1, dt*camLerp);
+  camera.position.y += (camHeight - camera.position.y) * Math.min(1, dt*4);
+  camera.lookAt(car.x, 1.1, car.z);
+
+  // HUD
+  const dispSpeed = Math.hypot(car.vx, car.vz) * Math.sign(car.speed || 1);
+  document.getElementById('speedval').textContent = Math.round(Math.abs(dispSpeed)*3.6);
+  const dispLat = originLat - car.z/110540;
+  const dispLon = originLon + car.x/(111320*Math.cos(originLat*Math.PI/180));
+  document.getElementById('latval').textContent = dispLat.toFixed(5);
+  document.getElementById('lonval').textContent = dispLon.toFixed(5);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  updateCar(dt);
+  updateRain(dt);
+  updateSkidMarks(dt);
+  drawMinimap();
+  renderer.render(scene, camera);
+}
+
+/* ---------------- boot ---------------- */
+initScene();
+animate();
+hopTo(originLat, originLon, 'Bengaluru, IN (MG Road area)');
+
+})();
+</script>
+</body>
+</html>
